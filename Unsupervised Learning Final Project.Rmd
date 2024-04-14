@@ -1,0 +1,100 @@
+---
+title: "Unsupervised Machine Learning:Clustering Assignment"
+author: "NHartley"
+date: "2024-04-13"
+output: html_document
+---
+
+::: {style="font-size:18px"}
+**OVERVIEW**
+:::
+
+The goal of this project is to conduct an analysis of the training set for gym users to predict the user categories in the test set.
+
+::: {style="font-size:18px"}
+**DATA PRE-PROCESSING**
+:::
+
+Data Preprocessing: Clean and preprocess the training and testing datasets. This may involve handling missing values, encoding categorical variables, and scaling numerical features. There were a number of columns where 19,216 data points were missing – essentially all of them. I felt that the amount of data missing for those columns was too high to safely interpolate values based on the limited data available for the isolated number of rows that did have data. So I chose to exclude those from the analysis.
+
+::: {style="font-size:18px"}
+**MODEL TRAINING**
+:::
+
+xxxx
+
+::: {style="font-size:18px"}
+**CROSS VALIDATION**
+:::
+
+xxx
+
+::: {style="font-size:18px"}
+**MODEL EVALUATION**
+:::
+
+Model Evaluation: After training the model using cross-validation, I evaluated its performance using various metrics such as accuracy, precision, recall, and F1-score.
+
+```{r setup, include=FALSE}
+# Install and load required packages
+required_packages <- c("tidyverse", "cluster", "factoextra", "dbscan", "dendextend")
+
+new_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
+if(length(new_packages)) install.packages(new_packages)
+
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(dbscan)
+library(dendextend)
+
+# Load the data
+data <- read.csv("C:/Users/nhart/OneDrive/Desktop/Johns Hopkins/Practical Machine Learning/pre-processed/train_data.csv")
+
+# Drop the 'classe' column for clustering
+data_clustering <- select(data, -classe)
+
+# Determine the number of unique classes (to set the number of clusters)
+num_clusters <- length(unique(data$classe))
+
+# K-means clustering
+set.seed(123)  # Ensure reproducibility
+kmeans_result <- kmeans(data_clustering, centers = num_clusters, nstart = 25)
+
+# Plot K-means results
+fviz_cluster(kmeans_result, data = data_clustering, geom = "point") +
+  ggtitle("K-means Clustering Results") +
+  theme_minimal()
+
+# Hierarchical clustering
+dist_matrix <- dist(data_clustering, method = "euclidean")
+hc <- hclust(dist_matrix, method = "complete")
+
+# Convert hc to a dendrogram and color the branches
+dend <- as.dendrogram(hc)
+dend_colored <- color_branches(dend, k = num_clusters)
+
+# Plot the colored dendrogram
+plot(dend_colored, main = "Hierarchical Clustering Dendrogram")
+# Add colored rectangles to highlight the clusters
+rect.hclust(hc, k = num_clusters, border = 1:num_clusters)
+
+# DBSCAN clustering
+dbscan_result <- dbscan(data_clustering, eps = 0.5, minPts = 10)
+
+# Generate a color vector for the clusters plus grey for noise
+all_clusters <- sort(unique(dbscan_result$cluster))
+colors <- setNames(c("grey", rainbow(length(all_clusters) - 1)), all_clusters)
+
+# Plot DBSCAN results
+fviz_cluster(list(data = data_clustering, cluster = dbscan_result$cluster), stand = FALSE) +
+  geom_point(aes(color = as.factor(dbscan_result$cluster)), alpha = 0.5, size = 2) +
+  geom_point(aes(color = as.factor(dbscan_result$cluster)), shape = 1, size = 2) +
+  scale_color_manual(values = colors) +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  labs(color = "Cluster") +
+  ggtitle("DBSCAN Clustering Results with Outlined Clusters")
+
+
+```
